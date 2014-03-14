@@ -58,6 +58,12 @@ const uint32_t sector_boundaries[] = {0x00000FFF, // Sector 0
 #define IAP_COMPARE     56
 #define IAP_ISP         57
 
+// Usercode locations
+#define USERCODE_LOCATION   0x10000
+#define USERCODE_SIZE_SIZE  0x04
+#define USERCODE_SIG_SIZE   0x40
+#define USERCODE_FREE_SPACE 0x7dfff
+
 uint8_t codebuffer[0x1000];
 
 static uint8_t hex2bin(const uint8_t *s)
@@ -111,7 +117,7 @@ int main(void)
             ctr++;
         }
 
-        uint32_t writeptr = 0x10000;
+        uint32_t writeptr = USERCODE_LOCATION;
 
         while(codelen--) {
             while(!(U0LSR & 0x01)) ; // Wait for incoming data.
@@ -120,7 +126,7 @@ int main(void)
             buf[1] = U0RBR;
             codebuffer[ctr++] = hex2bin(buf);
             if(ctr == 0x1000 || codelen == 0) { // Transmission complete, write sector.
-                if(writeptr == 0x10000) { // Before the first write, we have to erase the flash memory.
+                if(writeptr == USERCODE_LOCATION) { // Before the first write, we have to erase the flash memory.
                     uint8_t startsector = 0, endsector = 0;
 
                     while(writeptr > sector_boundaries[startsector])
@@ -177,10 +183,10 @@ int main(void)
         FIO2CLR = (1 << 4); // Indicate end of boot loader.
     }
 
-    uint8_t *usercode_len_loc = (uint8_t*)0x00010000; // Location of length of usercode in flash.
-    uint8_t *flashsig = (uint8_t*)0x00010004; // Location of the signature in flash.
-    uint8_t *usercode = (uint8_t*)0x00010044; // Location of the usercode in flash.
-    uint32_t usercode_len = (usercode_len_loc[0] << 24 | usercode_len_loc[1] << 16 | usercode_len_loc[2] << 8 | usercode_len_loc[3]) - 0x40; // Subtract the length of the signature.
+    uint8_t *usercode_len_loc = (uint8_t*)USERCODE_LOCATION; // Location of length of usercode in flash.
+    uint8_t *flashsig = (uint8_t*)USERCODE_LOCATION + USERCODE_SIZE_SIZE; // Location of the signature in flash.
+    uint8_t *usercode = (uint8_t*)USERCODE_LOCATION + USERCODE_SIZE_SIZE + USERCODE_SIG_SIZE; // Location of the usercode in flash.
+    uint32_t usercode_len = (usercode_len_loc[0] << 24 | usercode_len_loc[1] << 16 | usercode_len_loc[2] << 8 | usercode_len_loc[3]) - USERCODE_SIG_SIZE; // Subtract the length of the signature.
 
     const uint8_t key[65] = {0x04, 0x6E, 0xAF, 0x09, 0x68, 0xAA, 0x89, 0x5A, 0xDD, 0xFE, 0xE5, 0x99, 0x56, 0x6F, 0x0B, 0x88,
                              0x02, 0x42, 0x46, 0x1D, 0x13, 0x77, 0xF4, 0x88, 0x7C, 0x9B, 0x84, 0x63, 0x1E, 0x13, 0x06, 0x7B,
@@ -188,7 +194,7 @@ int main(void)
                              0x29, 0x03, 0xAF, 0x61, 0x05, 0x83, 0x3E, 0x4C, 0xBA, 0xDE, 0x9D, 0x6A, 0x1D, 0x0F, 0x03, 0x91,
                              0x87}; // 1DVqmTy9Ux3NqkWURZZfygqvnxac2FjH66, http://gobittest.appspot.com/Address
 
-    if(usercode_len != 0 && usercode_len < 0x7dfff) { // Check for invalid code length.
+    if(usercode_len != 0 && usercode_len < USERCODE_FREE_SPACE) { // Check for invalid code length.
         if(ecdsa_verify(key, flashsig, usercode, usercode_len) == 0) { // Verification successfull, branch to user code.
             asm volatile("mov r0, #0x00010000"); // Start of sector 9.
             asm volatile("add r1, r0, #0x44"); // Skip length and 64 byte signature.
