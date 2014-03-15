@@ -29,7 +29,7 @@ The file is now hex encoded, resulting in a text file like this:
 
 This includes the size of the program (0x12c) and the first five bytes of the signature (31828a1a9f).
 
-### Behaviour of h the bootloader after reset
+### Behaviour of the bootloader after reset
 The bootloader is accepting data if pin 2.1 is logic high on reset. If so, data is expected in the format described above.
 If pin 2.1 is logic low, the bootloader tries to start the program in flash. To do so, the signature is checked against the hard coded public key.
 If the signature is correct, the main code is executed. If the signature does not match, an LED is toggled infinitely.
