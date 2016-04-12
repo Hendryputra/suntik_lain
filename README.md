@@ -1,4 +1,4 @@
-Bootloader for LPC2300
+Bootloader for LPC2300 microcontrollers
 ------
 
 A basic bootloader for LPC2300 devices, written in C.
