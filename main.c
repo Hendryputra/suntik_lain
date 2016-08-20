@@ -11,6 +11,20 @@
 #define CRP1 0x12345678 // CRP level 1
 #define CRP2 0x87654321 // CRP level 2
 #define CRP3 0x43218765 // CRP level 3
+#define LED_UTAMA	BIT(18)
+#define RLY_1	BIT(0)			/* P1 */
+#define RLY_2	BIT(1)
+#define RLY_3	BIT(4)			
+#define RLY_4	BIT(8)	
+#define cRelay1()		FIO1CLR = RLY_1
+#define cRelay2()		FIO1CLR = RLY_2
+#define cRelay3()		FIO1CLR = RLY_3
+#define cRelay4()		FIO1CLR = RLY_4
+#define sRelay1()		FIO1SET = RLY_1
+#define sRelay2()		FIO1SET = RLY_2
+#define sRelay3()		FIO1SET = RLY_3
+#define sRelay4()		FIO1SET = RLY_4
+
 __attribute__((section(".crp"))) const uint32_t crp = CRP0;
 
 // IAP Configuration
@@ -88,6 +102,10 @@ int main(void)
 {
     uint32_t i;
     FIO2DIR = (3 << 3);
+    FIO1DIR |= LED_UTAMA;
+    FIO1DIR |= RLY_1;
+	FIO1CLR = LED_UTAMA;
+
     display_init();
     if(FIO2PIN & (1 << 1)) { // S0 pressed, start update.
         // Configure UART0
@@ -102,8 +120,9 @@ int main(void)
         U0LCR = 0x03; // 8 bits, no parity, 1 stop bit
         U0FCR = 0x07; //Enable FIFO
 
-        FIO2SET = (1 << 4); // Indicate start of boot loader.
-
+        //FIO2SET = (1 << 4); // Indicate start of boot loader.
+		sRelay1();
+		
         uint32_t ctr = 0;
         uint32_t codelen = 0;
         uint8_t buf[2];
@@ -180,7 +199,8 @@ int main(void)
                 }
             }
         }
-        FIO2CLR = (1 << 4); // Indicate end of boot loader.
+        //FIO2CLR = (1 << 4); // Indicate end of boot loader.
+        cRelay1();
     }
 
     uint8_t *usercode_len_loc = (uint8_t*)USERCODE_LOCATION; // Location of length of usercode in flash.
@@ -203,7 +223,7 @@ int main(void)
     }
 
     while(1) { // Loop forever if verification failed.
-        FIO2PIN ^= (1 << 3);
+        FIO1PIN ^= LED_UTAMA;
         for(i=0;i<1000000UL;i++)
             asm volatile("nop");
     }
