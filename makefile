@@ -44,7 +44,7 @@ TCHAIN = arm-none-eabi
 
 #FLASH_TOOL = UVISION
 #FLASH_TOOL = OPENOCD
-
+PENULIS=./Penulis/lpc21isp
 #USE_THUMB_MODE = YES
 USE_THUMB_MODE = NO
 
@@ -72,7 +72,7 @@ TARGET = main
 
 # List C source files here. (C dependencies are automatically generated.)
 # use file-extension c for "c-only"-files
-SRC =  $(TARGET).c target.c display.c display-data.c
+SRC =  $(TARGET).c target.c 
 SRC += trezor-crypto/aescrypt.c trezor-crypto/aeskey.c trezor-crypto/aestab.c trezor-crypto/bignum.c trezor-crypto/bip32.c trezor-crypto/bip39.c
 SRC += trezor-crypto/ecdsa.c trezor-crypto/hmac.c trezor-crypto/pbkdf2.c trezor-crypto/rand.c trezor-crypto/ripemd160.c trezor-crypto/secp256k1.c trezor-crypto/sha2.c#
 
@@ -245,7 +245,7 @@ EXTRA_LIBS =
 #    --cref:    add cross reference to  map file
 LDFLAGS = -nostartfiles -Wl,-Map=$(TARGET).map,--cref,--gc-sections
 LDFLAGS += $(NEWLIBLPC) $(MATH_LIB)
-LDFLAGS += -lc -lgcc
+LDFLAGS += -lc -specs=nosys.specs -lgcc
 LDFLAGS += $(CPLUSPLUS_LIB)
 LDFLAGS += $(patsubst %,-L%,$(EXTRA_LIBDIRS))
 LDFLAGS += $(patsubst %,-l%,$(EXTRA_LIBS))
@@ -386,6 +386,11 @@ gccversion :
 	@$(CC) --version
 
 # Program the device.
+
+tulis:
+	sudo $(PENULIS) -hex $(TARGET).hex /dev/ttyUSB0 115200 14748
+
+
 ifeq ($(FLASH_TOOL),UVISION)
 # Program the device with Keil's uVision (needs configured uVision-Workspace).
 program: $(TARGET).hex
@@ -411,7 +416,7 @@ else
 program: $(TARGET).hex
 	@echo
 	@echo $(MSG_LPC21_RESETREMINDER)
-	$(LPC21ISP) $(LPC21ISP_OPTIONS) $(LPC21ISP_FLASHFILE) $(LPC21ISP_PORT) $(LPC21ISP_BAUD) $(LPC21ISP_XTAL)
+	echo 'kzl' | sudo -S $(LPC21ISP) $(LPC21ISP_OPTIONS) $(LPC21ISP_FLASHFILE) $(LPC21ISP_PORT) $(LPC21ISP_BAUD) $(LPC21ISP_XTAL)
 endif
 endif
 

@@ -93,47 +93,50 @@ static void GPIOResetInit( void )
 ******************************************************************************/
 void ConfigurePLL ( void )
 {
-	DWORD MValue, NValue;
+	// Disable the PLL. //
+	PLLCON = 0;							// 0 = PLL dimatikan dulu
+	PLLFEED = mainPLL_FEED_BYTE1;		// 0xAA
+	PLLFEED = mainPLL_FEED_BYTE2;		// 0x55
+	
+	// Configure clock source. //				// SCS = system control dan status register 
+//	pakai internal RC saja
+//	SCS |= mainOSC_ENABLE;						// mainOSC_ENABLE = 0x20, Hal 42	==> Untuk Kristal External
+//	while( !( SCS & mainOSC_STAT ) );			// 
+//	CLKSRCSEL = mainOSC_SELECT; 				// mainOSC_SELECT = 0x01 ==> 
+	
+	// Setup the PLL to multiply the XTAL input by 4. //
+	PLLCFG = ( mainPLL_MUL | mainPLL_DIV );		// set fcc jd 480 MHz
+	PLLFEED = mainPLL_FEED_BYTE1;
+	PLLFEED = mainPLL_FEED_BYTE2;
 
-	if ( PLLSTAT & (1 << 25) )
-    {
-		PLLCON = 1;			/* Enable PLL, disconnected */
-		PLLFEED = 0xaa;
-		PLLFEED = 0x55;
-    }
+	// Turn on and wait for the PLL to lock... //
+	PLLCON = mainPLL_ENABLE;					// mainPLL_ENABLE = 0x01
+	PLLFEED = mainPLL_FEED_BYTE1;
+	PLLFEED = mainPLL_FEED_BYTE2;
 
-    PLLCON = 0;				/* Disable PLL, disconnected */
-    PLLFEED = 0xaa;
-    PLLFEED = 0x55;
-
-	SCS |= 0x20;			/* Enable main OSC */
-    while( !(SCS & 0x40) );	/* Wait until main OSC is usable */
-
-    CLKSRCSEL = 0x1;		/* select main OSC, 12MHz, as the PLL clock source */
-
-    PLLCFG = PLL_MValue | (PLL_NValue << 16);
-    PLLFEED = 0xaa;
-    PLLFEED = 0x55;
-
-    PLLCON = 1;				/* Enable PLL, disconnected */
-    PLLFEED = 0xaa;
-    PLLFEED = 0x55;
-
-    CCLKCFG = CCLKDivValue;	/* Set clock divider */
-#if USE_USB
-    USBCLKCFG = USBCLKDivValue;		/* usbclk = 288 MHz/6 = 48 MHz */
-#endif
-
-    while ( ((PLLSTAT & (1 << 26)) == 0) );	/* Check lock bit status */
-
-    MValue = PLLSTAT & 0x00007FFF;
-    NValue = (PLLSTAT & 0x00FF0000) >> 16;
-    while ((MValue != PLL_MValue) && ( NValue != PLL_NValue) );
-
-    PLLCON = 3;				/* enable and connect */
-    PLLFEED = 0xaa;
-    PLLFEED = 0x55;
-	while ( ((PLLSTAT & (1 << 25)) == 0) );	/* Check connect bit status */
+	CCLKCFG = mainCPU_CLK_DIV;					// mainCPU_CLK_DIV = 8
+	while( !( PLLSTAT & mainPLL_LOCK ) );
+	
+	// Connecting the clock. //
+	PLLCON = mainPLL_CONNECT;					// mainPLL_CONNECT = 0x02 | 0x01
+	PLLFEED = mainPLL_FEED_BYTE1;
+	PLLFEED = mainPLL_FEED_BYTE2;
+	while( !( PLLSTAT & mainPLL_CONNECTED ) ); 
+	
+	/* 
+	This code is commented out as the MAM does not work on the original revision
+	LPC2368 chips.  If using Rev B chips then you can increase the speed though
+	the use of the MAM.
+	
+	Setup and turn on the MAM.  Three cycle access is used due to the fast
+	PLL used.  It is possible faster overall performance could be obtained by
+	tuning the MAM and PLL settings.
+	*/
+	
+	MAMCR = 0;
+	//MAMTIM = mainMAM_TIM_3;			// MAMTIM=1 --> 20MHz, MAMTIM=2 --> 40MHz, MAMTIM=3 >40MHz, MAMTIM=4 >=60MHz
+	MAMTIM = mainMAM_TIM_4;				// 
+	MAMCR = mainMAM_MODE_FULL;
 	return;
 }
 
@@ -175,33 +178,12 @@ void TargetResetInit(void)
 	/* Configure PLL, switch from IRC to Main OSC */
 	ConfigurePLL();
 
-  /* Set system timers for each component */
-#if (Fpclk / (Fcclk / 4)) == 1
-    PCLKSEL0 = 0x00000000;	/* PCLK is 1/4 CCLK */
-    PCLKSEL1 = 0x00000000;
-#endif
-#if (Fpclk / (Fcclk / 4)) == 2
-    PCLKSEL0 = 0xAAAAAAAA;	/* PCLK is 1/2 CCLK */
-    PCLKSEL1 = 0xAAAAAAAA;
-#endif
-#if (Fpclk / (Fcclk / 4)) == 4
+
     PCLKSEL0 = 0x55555555;	/* PCLK is the same as CCLK */
     PCLKSEL1 = 0x55555555;
-#endif
 
-    /* Set memory accelerater module*/
-    MAMCR = 0;
-#if Fcclk < 20000000
-    MAMTIM = 1;
-#else
-#if Fcclk < 40000000
-    MAMTIM = 2;
-#else
-    MAMTIM = 3;
-#endif
-#endif
-    MAMCR = 2;
 
+   
     GPIOResetInit();
 
     return;

@@ -15,10 +15,41 @@
    extern "C" {
 #endif
 
-//#define KEIL_BOARD_LPC23XX         0
+#define KEIL_BOARD_LPC23XX         0
 //#define EA_BOARD_LPC24XX           0
 //#define OLIMEX_BOARD_LPC2378_EK    0
-#define BITCOIN_TERMINAL           1
+//#define BITCOIN_TERMINAL           1
+
+#define WDOG_TO_RESET	(1000000 * 6)		// 4/4 MHz * 15 detik //
+#define WDEN	BIT(0)
+#define WDRESET BIT(1)
+
+
+#define PLL_MUL				60
+#define mainPLL_MUL			 ( PLL_MUL - 1 ) 
+#define PLL_DIV				1
+#define mainPLL_DIV			(PLL_DIV - 1) 
+#define CLK_DIV				8		// 480/8 = 60
+//#define CLK_DIV			48		// 480/48 = 10
+#define mainCPU_CLK_DIV		 (CLK_DIV-1) 
+#define mainPLL_ENABLE		 0x0001 
+#define mainPLL_CONNECT		 0x0002  | mainPLL_ENABLE 
+#define mainPLL_FEED_BYTE1	 0xaa 
+#define mainPLL_FEED_BYTE2	 0x55 
+#define mainPLL_LOCK		 0x4000000 
+#define mainPLL_CONNECTED	 0x2000000 
+#define mainOSC_ENABLE		 0x20
+#define mainOSC_STAT		 0x40
+#define mainOSC_SELECT		 0x01 		// Kristal External 
+#define intRC_SELECT		 0x00 		// Internal RC	==> CANnet jangan pakai ini
+#define RTC_SELECT			 0x10 		// RTC
+
+/* Constants to setup the MAM. */
+#define mainMAM_TIM_3		 0x03 
+#define mainMAM_TIM_4	 	0x04 
+#define mainMAM_MODE_FULL	0x02 
+
+
 
 //typedef unsigned long  DWORD;
 /* If USB device is used, the CCLK setting needs to be 57.6Mhz, CCO will be 288Mhz
@@ -91,9 +122,9 @@ based on the table below. If you want to use USB, change "define USE_USB" from 0
 //#define USBCLKDivValue		6
 
 /* Fcck = 50Mhz, Fosc = 300Mhz */
-#define PLL_MValue			24
+#define PLL_MValue			50
 #define PLL_NValue			1
-#define CCLKDivValue		5
+#define CCLKDivValue		8
 #define USBCLKDivValue		6
 
 ///* Fcck = 72Mhz, Fosc = 360Mhz, and USB 48Mhz */
@@ -104,10 +135,10 @@ based on the table below. If you want to use USB, change "define USE_USB" from 0
 
 /* System configuration: Fosc, Fcclk, Fcco, Fpclk must be defined */
 /* PLL input Crystal frequence range 4KHz~20MHz. */
-#define Fosc	12000000
+#define Fosc	8000000
 /* System frequence,should be less than 80MHz. */
-#define Fcclk	50000000    // 50000000
-#define Fcco	300000000
+#define Fcclk	60000000    // 50000000
+#define Fcco	480000000
 
 #endif
 
