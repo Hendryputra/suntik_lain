@@ -73,8 +73,9 @@ TARGET = main
 # List C source files here. (C dependencies are automatically generated.)
 # use file-extension c for "c-only"-files
 SRC =  $(TARGET).c target.c 
-SRC += trezor-crypto/aescrypt.c trezor-crypto/aeskey.c trezor-crypto/aestab.c trezor-crypto/bignum.c trezor-crypto/bip32.c trezor-crypto/bip39.c
-SRC += trezor-crypto/ecdsa.c trezor-crypto/hmac.c trezor-crypto/pbkdf2.c trezor-crypto/rand.c trezor-crypto/ripemd160.c trezor-crypto/secp256k1.c trezor-crypto/sha2.c#
+SRC += printf.c
+#SRC += trezor-crypto/aescrypt.c trezor-crypto/aeskey.c trezor-crypto/aestab.c trezor-crypto/bignum.c trezor-crypto/bip32.c trezor-crypto/bip39.c
+#SRC += trezor-crypto/ecdsa.c trezor-crypto/hmac.c trezor-crypto/pbkdf2.c trezor-crypto/rand.c trezor-crypto/ripemd160.c trezor-crypto/secp256k1.c trezor-crypto/sha2.c#
 
 
 
@@ -131,8 +132,8 @@ AT91LIBNOWARN = no
 # Debugging format.
 # Native formats for AVR-GCC's -g are stabs [default], or dwarf-2.
 # AVR (extended) COFF requires stabs, plus an avr-objcopy run.
-#DEBUG = stabs
-DEBUG = dwarf-2
+DEBUG = stabs
+#DEBUG = dwarf-2
 #DEBUG = gdb
 
 # List any extra directories to look for include files here.
@@ -388,7 +389,7 @@ gccversion :
 # Program the device.
 
 tulis:
-	sudo $(PENULIS) -hex $(TARGET).hex /dev/ttyUSB0 115200 14748
+	echo 'kzl' | sudo -S $(PENULIS) -hex $(TARGET).hex /dev/ttyUSB0 115200 14748
 
 
 ifeq ($(FLASH_TOOL),UVISION)

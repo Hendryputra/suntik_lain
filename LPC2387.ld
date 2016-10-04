@@ -20,7 +20,7 @@ STACK_SIZE = 0x400; -> see startup-file and .stack-section
 /* Memory Definitions */
 MEMORY
 {
-  ROM (rx)      : ORIGIN = 0x00000000, LENGTH = (512k-8k)
+  ROM (rx)      : ORIGIN = 0x00000000, LENGTH = (8k)
   RAM (rw)      : ORIGIN = 0x40000000, LENGTH = (64k-32)
   BRAM (rw)     : ORIGIN = 0xE0084000, LENGTH = (2k)        /* ADDED lkamp */
   USBRAM (rw)   : ORIGIN = 0x7FD00000, LENGTH = (16k)         /* ADDED lkamp */
