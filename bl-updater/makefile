@@ -31,7 +31,7 @@ OUT_DEBUG = bl-updater
 
 OBJ_DEBUG = $(OBJDIR_DEBUG)/main.o
 
-all: $(OBJ_DEBUG) $(DEP_DEBUG)
+all: clean $(OBJ_DEBUG) $(DEP_DEBUG)
 	$(LD) $(LDFLAGS_DEBUG) $(LIBDIR_DEBUG) $(OBJ_DEBUG) $(LIB_DEBUG) -o $(OUT_DEBUG)
 
 $(OBJDIR_DEBUG)/main.o: main.c

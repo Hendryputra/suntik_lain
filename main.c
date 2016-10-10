@@ -207,7 +207,7 @@ const uint32_t sector_boundaries[] = {0x00000FFF, // Sector 0
                                       0x0007DFFF};  // Sector 27
 
 // Usercode locations
-#define USERCODE_LOCATION   0x004000
+#define USERCODE_LOCATION   0x002000
 #define USERCODE_SIZE_SIZE  0x04
 #define USERCODE_SIG_SIZE   0x40
 #define USERCODE_FREE_SPACE 0x7dfff
@@ -216,6 +216,19 @@ uint8_t codebuffer[0x1000];
 int dd;
 char buff[20];
 int iap_flag=0;
+typedef void (*entry_t)(void);
+
+void boot_jump(WORD address)
+{
+    asm("LDR SP,[R0]"); //Load new stack pointer address
+    asm("LDR PC,[R0,#4]");//Load new program counter address
+}
+//************************************
+void execute_user_code(void)
+{
+   //SCB->VTOR = USERCODE_LOCATION & 0x1FFFFF80;
+    boot_jump(USERCODE_LOCATION);
+}
 
 int main(void)
 {
@@ -263,23 +276,41 @@ int main(void)
     if(FIO0PIN & BIT(22)) { // S0 pressed, start update.
         // Configure UART0
         
-		
+		char codelens[4];
         
-       /* for(i = 0; i < 4; i++) {
+       for(i = 0; i < 4; i++) {
             while(!(U0LSR & 0x01)) ; // Wait for incoming data.
             buf[0] = U0RBR;
+            U0THR=buf[0];
+             //codelen &=  buf[0];
+            
+          // printf("code length: %x\r\n",buf[0]);
+        
             while(!(U0LSR & 0x01)) ;
             buf[1] = U0RBR;
-            codelen = (codelen << 8) | hex2bin(buf);
-            codebuffer[ctr] = codelen & 0xFF;
-            ctr++;
-        }*/
-		codelen=2500;
-        uint32_t writeptr = USERCODE_LOCATION;
-
-        while(codelen--) {
-			//FIO1PIN ^= RLY_3;
+            U0THR=buf[1];
+           // printf("code l: %02X\r\n",((buf[0]<<4) & 0xf0) | (buf[1]& 0xf  ));
 			
+            //codelen |= (codelen << 4) & buf[0];
+           codelens[i] = ((buf[1]<<4) & 0xf0) | (buf[0]& 0xf  );
+				
+            
+			//ctr++;
+        }
+        //codelen=2500;
+        
+       // printf("cb: %02X,%02X,%02X,%02X \r\n",codebuffer[0] | codebuffer[1] | codebuffer[2] | codebuffer[3] );
+		codelen=(codelens[3] <<24)| (codelens[2] <<16)| (codelens[1] <<8) | (codelens[0] & 0xff);
+		codelen=codelen;
+		codelen=codelen-1;
+		//codelen=2500;
+		U0THR=0x12;
+        //return 0;
+        uint32_t writeptr = USERCODE_LOCATION;
+		cRelay3();
+		
+        while(codelen--) {
+			cRelay3();
 			if(codelen!=0){
 				while(!(U0LSR & 0x01) ) ; // Wait for incoming data.
 				buf[0] = U0RBR;
@@ -298,7 +329,7 @@ int main(void)
             
             if(ctr == 0x1000 || codelen == 0) { // Transmission complete, write sector.
 				//while(1) { // Loop forever if verification failed.
-				FIO1PIN ^= RLY_3;
+				sRelay3();
 				//for(i=0;i<1000000UL;i++)
 				//asm volatile("nop");
 				//}
@@ -339,7 +370,7 @@ int main(void)
 				ser0_print(buff);
 				#endif
 				
-				ctr=ctr/2;
+				//ctr=ctr;
 				
 					 if(ctr != 0x1000) { // Adjust ctr for last transmitted bytes. ctr has to be 256 | 512 | 1024 | 4096.
                     if(ctr <= 256)
@@ -373,17 +404,20 @@ int main(void)
                     while(!(U0LSR & (1<<5))){
 						FIO1PIN ^= RLY_2;
 						};
-                    U0THR = 0x11; // Tell host to continue sending.
+                    U0THR = 0x12; // Tell host to continue sending.
                      
                 }
             }
+            
+            
         }
         //FIO2CLR = (1 << 4); // Indicate end of boot loader.
        
         
-        U0THR=0x11;
+        U0THR=0x12;
+       
         
-        
+       
     }
     
     #if 0
@@ -425,16 +459,28 @@ int main(void)
                              0x29, 0x03, 0xAF, 0x61, 0x05, 0x83, 0x3E, 0x4C, 0xBA, 0xDE, 0x9D, 0x6A, 0x1D, 0x0F, 0x03, 0x91, \
                              0x87}; // 1DVqmTy9Ux3NqkWURZZfygqvnxac2FjH66, http://gobittest.appspot.com/Address
 
-    	sRelay2();
+    	//sRelay2();
+		 int xx=10;
+		 while(xx--) { // Loop forever if verification failed.
+        FIO1PIN ^= LED_UTAMA;
+        for(i=0;i<500000UL;i++)
+            asm volatile("nop");
+		}	
 		
-		
-		
-      // if(ecdsa_verify(key, flashsig, usercode, usercode_len) == 0) { // Verification successfull, branch to user codeasassasa.
+	execute_user_code();
+	
+		/*
+		entry_t user_code_entry;
+		user_code_entry = (entry_t )(USERCODE_LOCATION);
+		user_code_entry();
+*/
+      /* if(ecdsa_verify(key, flashsig, usercode, usercode_len) == 0) { // Verification successfull, branch to user codeasassasa.
             asm volatile("mov r0, #0x00004000"); // Start of sector 1.
-        //    asm volatile("add r1, r0, #0x44"); // Skip length and 64 byte signature.
+            asm volatile("mov r1, #0x0000001"); // Start of sector 1.
+            //asm volatile("sub r0, r1"); // Skip length and 64 byte signature.
             asm volatile("bx r0"); // Branch to user program.
-     //   }
-    
+        }*/
+
 
     while(1) { // Loop forever if verification failed.
         FIO1PIN ^= LED_UTAMA;
